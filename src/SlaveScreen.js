@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
 import './Screen.css';
+import SlaveSpeakers from './SlaveSpeakers';
 
 const SCREEN_WIDTH = 256;
 const SCREEN_HEIGHT = 240;
 
-class Screen extends Component {
+class SlaveScreen extends Component {
   render() {
     return (
       <canvas
@@ -33,11 +34,15 @@ class Screen extends Component {
   componentDidMount() {
     this.initCanvas();
     this.canvas.focus();
+    this.fitInParent();
+
+    this.speakers = new SlaveSpeakers();
+
+    this.speakers.start()
   }
 
   componentDidUpdate() {
     this.initCanvas();
-    this.canvas.focus();
   }
 
   initCanvas() {
@@ -47,45 +52,15 @@ class Screen extends Component {
     this.context.fillStyle = 'black';
     // set alpha to opaque
     this.context.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    // buffer to write on next animation frame
-    this.buf = new ArrayBuffer(this.imageData.data.length);
-    // Get the canvas buffer in 8bit and 32bit
-    this.buf8 = new Uint8ClampedArray(this.buf);
-    this.buf32 = new Uint32Array(this.buf);
-
-    // Set alpha
-    for (var i = 0; i < this.buf32.length; ++i) {
-      this.buf32[i] = 0xff000000;
-    }
   }
 
-  setBuffer = (buffer) => {
-    var i = 0;
-    for (var y = 0; y < SCREEN_HEIGHT; ++y) {
-      for (var x = 0; x < SCREEN_WIDTH; ++x) {
-        i = y * 256 + x;
-        // Convert pixel from NES BGR to canvas ABGR
-        this.buf32[i] = 0xff000000 | buffer[i]; // Full alpha
-      }
+  syncBuffer(buffer) {
+    var image = new Image();
+    image.onload = () => {
+      this.context.drawImage(image, 0, 0);
     }
-  };
-
-  writeBuffer = () => {
-    this.imageData.data.set(this.buf8);
-    this.context.putImageData(this.imageData, 0, 0);
-    if (this.props.playerId === 1) {
-      this.props.websocket.send(JSON.stringify({
-        event: 'syncVideoBuffer',
-        data: {
-          buffer: this.canvasImageData(),
-          room: {
-            id: this.props.roomId
-          }
-        }
-      }))
-    }
-  };
+    image.src = buffer
+  }
 
   fitInParent = () => {
     let parent = this.canvas.parentNode;
@@ -104,16 +79,6 @@ class Screen extends Component {
     }
   };
 
-  canvasImageData = () => {
-    return this.canvas.toDataURL('image/png');
-  };
-
-  screenshot = () => {
-    var img = new Image();
-    img.src = this.canvasImageData();
-    return img;
-  };
-
   handleMouseDown = (e) => {
     if (!this.props.onMouseDown) return;
     // Make coordinates unscaled
@@ -125,4 +90,4 @@ class Screen extends Component {
   };
 }
 
-export default Screen;
+export default SlaveScreen;

@@ -33,19 +33,10 @@ A project for potential contributors (hello!): jsnes-web should be reusable and 
 
 ## Adding roms
 
-Open `src/config.js` and add a new key to `config.ROMS`. For example:
+Open `src/config.js` and change `config.SERVER_URL`. For example:
 
 ```javascript
 const config = {
-  ROMS: {
-    // ...
-    myrom: {
-      name: "My Rom",
-      description: <span>This is my own homebrew NES rom</span>,
-      url: "http://localhost:3000/roms/myrom/myrom.nes"
-    }
-  }
-}
+  SERVER_URL: "ws://localhost:9000",
+};
 ```
-
-Then, add the ROM file as `public/roms/myrom/myrom.nes`. The ROM should now be available to play at http://localhost:3000/run/myrom

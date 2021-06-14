@@ -16,12 +16,18 @@ import Speakers from "./Speakers";
  * (binds to window, keyboard, speakers, etc).
  */
 class Emulator extends Component {
+  constructor(props) {
+    super(props);
+  }
   render() {
     return (
       <Screen
-        ref={screen => {
+        ref={(screen) => {
           this.screen = screen;
         }}
+        websocket={this.props.websocket}
+        playerId={this.props.playerId}
+        roomId={this.props.roomId}
         onGenerateFrame={() => {
           this.nes.frame();
         }}
@@ -32,11 +38,27 @@ class Emulator extends Component {
         onMouseUp={() => {
           this.nes.zapperFireUp();
         }}
+        onKeyDown={(e) => {
+          console.log(e.key);
+          if (this.specialKeyboardEvent(e)) {
+            this.onSpecialEvent(e);
+          } else {
+            this.keyboardController.handleKeyDown(e);
+          }
+        }}
+        onKeyUp={(e) => {
+          if (!this.specialKeyboardEvent(e)) {
+            this.keyboardController.handleKeyUp(e);
+          }
+        }}
+        onKeyPress={(e) => {
+          this.keyboardController.handleKeyPress(e);
+        }}
       />
     );
   }
 
-  componentDidMount() {
+  romLoaded = (data) => {
     // Initial layout
     this.fitInParent();
 
@@ -53,40 +75,40 @@ class Emulator extends Component {
         //   done by audio instead of requestAnimationFrame.
         // - System can't run emulator at full speed. In this case it'll stop
         //    firing requestAnimationFrame.
-        console.log(
-          "Buffer underrun, running another frame to try and catch up"
-        );
+        //console.log('Buffer underrun, running another frame to try and catch up');
 
         this.frameTimer.generateFrame();
         // desiredSize will be 2048, and the NES produces 1468 samples on each
         // frame so we might need a second frame to be run. Give up after that
         // though -- the system is not catching up
         if (this.speakers.buffer.size() < desiredSize) {
-          console.log("Still buffer underrun, running a second frame");
+          //console.log('Still buffer underrun, running a second frame');
           this.frameTimer.generateFrame();
         }
-      }
+      },
+      websocket: this.props.websocket,
+      roomId: this.props.roomId,
     });
 
     this.nes = new NES({
       onFrame: this.screen.setBuffer,
       onStatusUpdate: console.log,
       onAudioSample: this.speakers.writeSample,
-      sampleRate: this.speakers.getSampleRate()
+      sampleRate: this.speakers.getSampleRate(),
     });
 
     // For debugging. (["nes"] instead of .nes to avoid VS Code type errors.)
-    window["nes"] = this.nes;
+    //window['nes'] = this.nes;
 
     this.frameTimer = new FrameTimer({
       onGenerateFrame: Raven.wrap(this.nes.frame),
-      onWriteFrame: Raven.wrap(this.screen.writeBuffer)
+      onWriteFrame: Raven.wrap(this.screen.writeBuffer),
     });
 
     // Set up gamepad and keyboard
     this.gamepadController = new GamepadController({
       onButtonDown: this.nes.buttonDown,
-      onButtonUp: this.nes.buttonUp
+      onButtonUp: this.nes.buttonUp,
     });
 
     this.gamepadController.loadGamepadConfig();
@@ -98,36 +120,92 @@ class Emulator extends Component {
       ),
       onButtonUp: this.gamepadController.disableIfGamepadEnabled(
         this.nes.buttonUp
-      )
+      ),
     });
 
     // Load keys from localStorage (if they exist)
     this.keyboardController.loadKeys();
 
-    document.addEventListener("keydown", this.keyboardController.handleKeyDown);
-    document.addEventListener("keyup", this.keyboardController.handleKeyUp);
-    document.addEventListener(
-      "keypress",
-      this.keyboardController.handleKeyPress
-    );
+    try {
+      this.nes.loadROM(data);
+      this.start();
+    } catch (e) {
+      console.log(e);
+      this.stop();
+    }
+  };
 
-    this.nes.loadROM(this.props.romData);
-    this.start();
+  specialKeyboardEvent(e) {
+    return ["Insert", "End", "Home", "PageDown", "PageUp", "Delete"].includes(
+      e.key
+    );
+  }
+  onSpecialEvent(e) {
+    console.log(e);
+    switch (e.key) {
+      case "Insert":
+        console.log("oooo");
+        this.props.websocket.send(
+          JSON.stringify({
+            event: "specialKeyboardEvent",
+            data: {
+              keyPressed: e.key,
+              imageData: this.screen.canvasImageData(),
+              room: {
+                id: this.props.roomId,
+              },
+            },
+          })
+        );
+        break;
+      case "End":
+        this.props.websocket.send(
+          JSON.stringify({
+            event: "specialKeyboardEvent",
+            data: {
+              keyPressed: e.key,
+              room: {
+                id: this.props.roomId,
+              },
+            },
+          })
+        );
+        break;
+      case "Delete":
+        this.props.websocket.send(
+          JSON.stringify({
+            event: "specialKeyboardEvent",
+            data: {
+              keyPressed: e.key,
+              room: {
+                id: this.props.roomId,
+              },
+            },
+          })
+        );
+        break;
+      case "Home":
+        this.props.websocket.send(
+          JSON.stringify({
+            event: "specialKeyboardEvent",
+            data: {
+              keyPressed: e.key,
+              room: {
+                id: this.props.roomId,
+              },
+            },
+          })
+        );
+        break;
+    }
+  }
+
+  componentDidMount() {
+    this.romLoaded(this.props.romData);
   }
 
   componentWillUnmount() {
     this.stop();
-
-    // Unbind keyboard
-    document.removeEventListener(
-      "keydown",
-      this.keyboardController.handleKeyDown
-    );
-    document.removeEventListener("keyup", this.keyboardController.handleKeyUp);
-    document.removeEventListener(
-      "keypress",
-      this.keyboardController.handleKeyPress
-    );
 
     // Stop gamepad
     this.gamepadPolling.stop();
@@ -151,7 +229,7 @@ class Emulator extends Component {
     this.frameTimer.start();
     this.speakers.start();
     this.fpsInterval = setInterval(() => {
-      console.log(`FPS: ${this.nes.getFPS()}`);
+      //  console.log(`FPS: ${this.nes.getFPS()}`);
     }, 1000);
   };
 
@@ -171,7 +249,7 @@ class Emulator extends Component {
 
 Emulator.propTypes = {
   paused: PropTypes.bool,
-  romData: PropTypes.string.isRequired
+  romData: PropTypes.string.isRequired,
 };
 
 export default Emulator;

@@ -2,8 +2,10 @@ import RingBuffer from "ringbufferjs";
 import { handleError } from "./utils";
 
 export default class Speakers {
-  constructor({ onBufferUnderrun }) {
+  constructor({ onBufferUnderrun, websocket, roomId }) {
     this.onBufferUnderrun = onBufferUnderrun;
+    this.websocket = websocket;
+    this.roomId = roomId;
     this.bufferSize = 8192;
     this.buffer = new RingBuffer(this.bufferSize * 2);
   }
@@ -43,14 +45,28 @@ export default class Speakers {
 
   writeSample = (left, right) => {
     if (this.buffer.size() / 2 >= this.bufferSize) {
-      console.log(`Buffer overrun`);
+      //console.log(`Buffer overrun`);
       this.buffer.deqN(this.bufferSize / 2);
     }
     this.buffer.enq(left);
     this.buffer.enq(right);
   };
 
-  onaudioprocess = e => {
+  sendAudioBuffer(samples) {
+    this.websocket.send(
+      JSON.stringify({
+        event: "syncAudioBuffer",
+        data: {
+          buffer: samples,
+          room: {
+            id: this.roomId,
+          },
+        },
+      })
+    );
+  }
+
+  onaudioprocess = (e) => {
     var left = e.outputBuffer.getChannelData(0);
     var right = e.outputBuffer.getChannelData(1);
     var size = left.length;
@@ -62,6 +78,7 @@ export default class Speakers {
 
     try {
       var samples = this.buffer.deqN(size * 2);
+      this.sendAudioBuffer(samples);
     } catch (e) {
       // onBufferUnderrun failed to fill the buffer, so handle a real buffer
       // underrun
@@ -69,7 +86,7 @@ export default class Speakers {
       // ignore empty buffers... assume audio has just stopped
       var bufferSize = this.buffer.size() / 2;
       if (bufferSize > 0) {
-        console.log(`Buffer underrun (needed ${size}, got ${bufferSize})`);
+        //console.log(`Buffer underrun (needed ${size}, got ${bufferSize})`);
       }
       for (var j = 0; j < size; j++) {
         left[j] = 0;
