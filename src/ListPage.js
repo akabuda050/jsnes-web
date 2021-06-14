@@ -10,7 +10,7 @@ class ListPage extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      romLibrary: RomLibrary.load()
+      romLibrary: RomLibrary.load(),
     };
   }
   render() {
@@ -27,16 +27,19 @@ class ListPage extends Component {
                 <h1 className="mb-3">JSNES</h1>
                 <p>
                   A JavaScript NES emulator.{" "}
-                  <a href="https://github.com/bfirsh/jsnes">
+                  <a href="https://github.com/akabuda050/jsnes">
                     Source on GitHub.
                   </a>
+                  <br />
+                  <span>Based on&nbsp;</span>
+                  <a href="https://github.com/bfirsh/jsnes">bfirsh version.</a>
                 </p>
               </header>
 
               <ListGroup className="mb-4">
                 {Object.keys(config.ROMS)
                   .sort()
-                  .map(key => (
+                  .map((key) => (
                     <Link
                       key={key}
                       to={"/run/" + encodeURIComponent(key)}
@@ -60,7 +63,7 @@ class ListPage extends Component {
                   <ListGroup className="mb-4">
                     {this.state.romLibrary
                       .sort((a, b) => new Date(b.added) - new Date(a.added))
-                      .map(rom => (
+                      .map((rom) => (
                         <Link
                           key={rom.hash}
                           to={"run/local-" + rom.hash}
@@ -68,7 +71,7 @@ class ListPage extends Component {
                         >
                           {rom.name}
                           <span
-                            onClick={e => {
+                            onClick={(e) => {
                               e.preventDefault();
                               this.deleteRom(rom.hash);
                             }}
@@ -90,7 +93,7 @@ class ListPage extends Component {
     );
   }
 
-  deleteRom = hash => {
+  deleteRom = (hash) => {
     RomLibrary.delete(hash);
     this.updateLibrary();
   };
@@ -99,19 +102,19 @@ class ListPage extends Component {
     this.setState({ romLibrary: RomLibrary.load() });
   };
 
-  handleDragOver = e => {
+  handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "copy";
   };
 
-  handleDrop = e => {
+  handleDrop = (e) => {
     e.preventDefault();
 
     const file = e.dataTransfer.items
       ? e.dataTransfer.items[0].getAsFile()
       : e.dataTransfer.files[0];
 
-    RomLibrary.save(file).then(rom => {
+    RomLibrary.save(file).then((rom) => {
       this.updateLibrary();
       this.props.history.push({ pathname: "run/local-" + rom.hash });
     });
