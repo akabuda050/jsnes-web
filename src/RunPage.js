@@ -241,7 +241,7 @@ class RunPage extends Component {
       return {
         romData: data.romData,
         romName: data.romName,
-        emulatorKey: data.romName,
+        emulatorKey: `${data.romName}_${Date.now()}`,
         slaveScreenKey: `slaveScreenKeyS_${Date.now()}`,
         playerId: data.playerId,
         roomId: data.roomId,
