@@ -41,3 +41,6 @@ const config = {
   SERVER_URL: "ws://localhost:9000",
 };
 ```
+
+# Click to watch video example
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/4xMhcnmOuKE/0.jpg)](https://www.youtube.com/watch?v=4xMhcnmOuKE)
