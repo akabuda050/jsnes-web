@@ -136,14 +136,14 @@ class Emulator extends Component {
   };
 
   specialKeyboardEvent(e) {
-    return ["Insert", "End", "Home", "PageDown", "PageUp", "Delete"].includes(
+    return ["1", "3", "2", "PageDown", "PageUp", "4"].includes(
       e.key
     );
   }
   onSpecialEvent(e) {
     console.log(e);
     switch (e.key) {
-      case "Insert":
+      case "1":
         console.log("oooo");
         this.props.websocket.send(
           JSON.stringify({
@@ -158,7 +158,7 @@ class Emulator extends Component {
           })
         );
         break;
-      case "End":
+      case "3":
         this.props.websocket.send(
           JSON.stringify({
             event: "specialKeyboardEvent",
@@ -171,7 +171,7 @@ class Emulator extends Component {
           })
         );
         break;
-      case "Delete":
+      case "4":
         this.props.websocket.send(
           JSON.stringify({
             event: "specialKeyboardEvent",
@@ -184,7 +184,7 @@ class Emulator extends Component {
           })
         );
         break;
-      case "Home":
+      case "2":
         this.props.websocket.send(
           JSON.stringify({
             event: "specialKeyboardEvent",
